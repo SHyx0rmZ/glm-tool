@@ -12,12 +12,7 @@ extract(Archive, File, TargetDirectory) when is_record(File, glm_file) ->
         { error, eexist } ->
             ok
     end,
-    Data = case File#glm_file.compressed of
-        uncompressed ->
-            extract_uncompressed(Archive, File);
-        { compressed, _ } ->
-            extract_compressed(Archive, File)
-    end,
+    Data = extract(Archive, File),
     file:write_file(FilePath, Data).
 
 directorify(Directory) ->
@@ -26,7 +21,7 @@ directorify(Directory) ->
 directorify([ $/ | Directory ], reversed) -> lists:reverse([ $/ | Directory ]);
 directorify(Directory, reversed) -> lists:reverse([ $/ | Directory ]).
 
-extract_compressed(Archive, #glm_file{ name = Name, offset = Offset, size = Size, compressed = { compressed, OriginalSize } }) ->
+extract(Archive, #glm_file{ name = Name, offset = Offset, size = Size, compressed = { compressed, OriginalSize } }) ->
     io:format("Extracting and decompressing ~s~n", [ Name ]),
     Z = zlib:open(),
     ok = zlib:inflateInit(Z),
@@ -34,9 +29,8 @@ extract_compressed(Archive, #glm_file{ name = Name, offset = Offset, size = Size
     Data = zlib:inflate(Z, RawData),
     ok = zlib:inflateEnd(Z),
     ok = zlib:close(Z),
-    Data.
-
-extract_uncompressed(Archive, #glm_file{ name = Name, offset = Offset, size = Size }) ->
+    Data;
+extract(Archive, #glm_file{ name = Name, offset = Offset, size = Size }) ->
     io:format("Extracting ~s~n", [ Name ]),
     <<_:Offset/binary, Data:Size/binary, _/binary>> = Archive,
     Data.
