@@ -1,0 +1,1 @@
+-record(glm_file, {offset, name, size, compressed, timestamp}).
